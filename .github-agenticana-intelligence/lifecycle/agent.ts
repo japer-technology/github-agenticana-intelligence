@@ -328,7 +328,7 @@ try {
     }
   }
   if (!pushSucceeded) {
-    throw new Error(
+    console.error(
       "All 10 push attempts failed. Auto-reconciliation could not be completed. " +
       "Session state was not persisted to remote. Check the workflow logs for details."
     );
