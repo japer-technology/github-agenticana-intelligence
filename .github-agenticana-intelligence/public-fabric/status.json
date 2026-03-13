@@ -1,0 +1,485 @@
+{
+  "meta": {
+    "title": "Agenticana Intelligence — japer-technology/github-agenticana-intelligence"
+  },
+  "theme": {
+    "bg": "#0d1117",
+    "surface": "#161b22",
+    "border": "#30363d",
+    "text": "#e6edf3",
+    "muted": "#8b949e",
+    "accent": "#58a6ff",
+    "accent2": "#bc8cff",
+    "accent3": "#3fb950",
+    "glow": "rgba(88,166,255,.15)",
+    "radius": "12px"
+  },
+  "hero": {
+    "logoUrl": "https://raw.githubusercontent.com/japer-technology/github-minimum-intelligence/main/.github-minimum-intelligence/logo.png",
+    "logoAlt": "Agenticana Intelligence logo",
+    "title": "Agenticana Intelligence",
+    "slug": "japer-technology / github-agenticana-intelligence",
+    "tagline": "A 20-agent Sovereign AI Developer OS with specialist agents, complexity-based model routing, and three execution modes\u00a0\u2014 running on GitHub\u00a0Actions alongside GitHub Minimum Intelligence.",
+    "badges": [
+      { "label": "v1.1.0.0", "color": "blue" },
+      { "label": "20 Specialist Agents", "color": "purple" },
+      { "label": "TypeScript / Bun", "color": "blue" },
+      { "label": "AI-Assisted Development", "color": "purple" },
+      { "label": "GitHub Actions Runtime", "color": "blue" }
+    ]
+  },
+  "sections": [
+    {
+      "id": "about",
+      "title": "About",
+      "cards": [
+        {
+          "heading": "What Is Agenticana Intelligence?",
+          "content": [
+            {
+              "type": "paragraph",
+              "html": "Agenticana Intelligence extends <a class=\"link\" href=\"https://github.com/japer-technology/github-minimum-intelligence\" target=\"_blank\" rel=\"noopener\">GitHub Minimum Intelligence</a> with a constellation of <strong>20 specialist agents</strong>, each with a distinct domain, model tier, and skill set \u2014 from security auditing to frontend development to architecture debates."
+            },
+            {
+              "type": "paragraph",
+              "html": "Comment with a <code>~</code> prefix on any GitHub issue to activate Agenticana. The system dispatches your request to the right specialist (or multiple specialists) automatically."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "agents",
+      "title": "Specialist Agents",
+      "grid": "grid-3",
+      "cards": [
+        {
+          "heading": "Orchestrator",
+          "content": [
+            { "type": "paragraph", "html": "Default agent. Routes requests and coordinates multi-agent workflows. Pro tier." }
+          ]
+        },
+        {
+          "heading": "Backend Specialist",
+          "content": [
+            { "type": "paragraph", "html": "Server-side logic, APIs, and system architecture." }
+          ]
+        },
+        {
+          "heading": "Frontend Specialist",
+          "content": [
+            { "type": "paragraph", "html": "UI/UX implementation, component design, and browser-side development." }
+          ]
+        },
+        {
+          "heading": "Security Auditor",
+          "content": [
+            { "type": "paragraph", "html": "Vulnerability assessment, security review, and compliance checks." }
+          ]
+        },
+        {
+          "heading": "Penetration Tester",
+          "content": [
+            { "type": "paragraph", "html": "Offensive security testing and attack surface analysis." }
+          ]
+        },
+        {
+          "heading": "Database Architect",
+          "content": [
+            { "type": "paragraph", "html": "Schema design, query optimization, and data modeling." }
+          ]
+        },
+        {
+          "heading": "DevOps Engineer",
+          "content": [
+            { "type": "paragraph", "html": "CI/CD pipelines, infrastructure, and deployment automation." }
+          ]
+        },
+        {
+          "heading": "Test Engineer",
+          "content": [
+            { "type": "paragraph", "html": "Test strategy, test case design, and quality assurance." }
+          ]
+        },
+        {
+          "heading": "QA Automation Engineer",
+          "content": [
+            { "type": "paragraph", "html": "Automated test frameworks, integration testing, and regression suites." }
+          ]
+        },
+        {
+          "heading": "Documentation Writer",
+          "content": [
+            { "type": "paragraph", "html": "Technical writing, API docs, and user guides." }
+          ]
+        },
+        {
+          "heading": "Performance Optimizer",
+          "content": [
+            { "type": "paragraph", "html": "Profiling, bottleneck analysis, and runtime optimization." }
+          ]
+        },
+        {
+          "heading": "Debugger",
+          "content": [
+            { "type": "paragraph", "html": "Root-cause analysis, stack trace interpretation, and bug resolution." }
+          ]
+        },
+        {
+          "heading": "Code Archaeologist",
+          "content": [
+            { "type": "paragraph", "html": "Legacy code analysis, refactoring, and codebase exploration." }
+          ]
+        },
+        {
+          "heading": "Product Manager",
+          "content": [
+            { "type": "paragraph", "html": "Feature prioritization, roadmap planning, and stakeholder alignment." }
+          ]
+        },
+        {
+          "heading": "Product Owner",
+          "content": [
+            { "type": "paragraph", "html": "Backlog management, user story creation, and acceptance criteria." }
+          ]
+        },
+        {
+          "heading": "Project Planner",
+          "content": [
+            { "type": "paragraph", "html": "Sprint planning, task breakdown, and timeline estimation." }
+          ]
+        },
+        {
+          "heading": "Explorer Agent",
+          "content": [
+            { "type": "paragraph", "html": "Codebase discovery, dependency mapping, and architecture understanding." }
+          ]
+        },
+        {
+          "heading": "Game Developer",
+          "content": [
+            { "type": "paragraph", "html": "Game logic, rendering, physics, and interactive experience design." }
+          ]
+        },
+        {
+          "heading": "Mobile Developer",
+          "content": [
+            { "type": "paragraph", "html": "iOS, Android, and cross-platform mobile application development." }
+          ]
+        },
+        {
+          "heading": "SEO Specialist",
+          "content": [
+            { "type": "paragraph", "html": "Search engine optimization, metadata, and web performance." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "execution-modes",
+      "title": "Execution Modes",
+      "grid": "grid-3",
+      "cards": [
+        {
+          "heading": "Single",
+          "content": [
+            { "type": "paragraph", "html": "One specialist handles the request end-to-end. The default mode for most tasks." }
+          ]
+        },
+        {
+          "heading": "Swarm",
+          "content": [
+            { "type": "paragraph", "html": "Multiple specialists work in parallel on different aspects of the same request. Used for reviews and full-stack tasks." }
+          ]
+        },
+        {
+          "heading": "Simulacrum",
+          "content": [
+            { "type": "paragraph", "html": "Structured multi-agent debate producing Architecture Decision Records (ADRs). Used for architecture-level discussions." }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "model-routing",
+      "title": "Model Routing",
+      "cards": [
+        {
+          "heading": "Complexity-Based Tier Selection",
+          "content": [
+            {
+              "type": "paragraph",
+              "html": "Every request is scored on a 0\u2013100 complexity scale. The router selects the most cost-effective model tier that can handle the task."
+            },
+            {
+              "type": "table",
+              "headers": ["Score", "Tier", "Cost Range"],
+              "rows": [
+                ["0\u201330", "Lite", "$0.15\u2013$0.25 / M tokens"],
+                ["31\u201360", "Flash", "$0.50\u2013$3.00 / M tokens"],
+                ["61\u201385", "Pro", "$2.50\u2013$15.00 / M tokens"],
+                ["86\u2013100", "Pro-Extended", "$5.00\u2013$30.00 / M tokens"]
+              ]
+            },
+            {
+              "type": "paragraph",
+              "html": "Scoring heuristics include prompt length, domain keywords, code block presence, and multi-step indicators.",
+              "style": "margin-top:.6rem;font-size:.85rem"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "concepts",
+      "title": "Key Concepts",
+      "grid": "grid-2",
+      "cards": [
+        {
+          "heading": "Issue = Conversation",
+          "content": [
+            {
+              "type": "paragraph",
+              "html": "Each GitHub issue maps to a persistent AI conversation. Comment again to continue where you left off."
+            }
+          ]
+        },
+        {
+          "heading": "Git = Memory",
+          "content": [
+            {
+              "type": "paragraph",
+              "html": "Session transcripts are committed to the repo in JSONL format. The agent has full recall of every prior exchange."
+            }
+          ]
+        },
+        {
+          "heading": "Actions = Runtime",
+          "content": [
+            {
+              "type": "paragraph",
+              "html": "GitHub Actions is the only compute layer. No servers, no containers, no external services."
+            }
+          ]
+        },
+        {
+          "heading": "Dispatch = Routing",
+          "content": [
+            {
+              "type": "paragraph",
+              "html": "A <code>dispatch.yaml</code> config maps issue labels to specialist agents and execution modes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lifecycle",
+      "title": "Workflow Lifecycle",
+      "cards": [
+        {
+          "heading": "Issue \u2192 Dispatch \u2192 Agent(s) \u2192 Commit \u2192 Reply",
+          "content": [
+            {
+              "type": "lifecycle",
+              "steps": ["Issue Event", "Label Dispatch", "Route to Specialist(s)", "Agent Process", "Save State", "Post Reply"]
+            },
+            {
+              "type": "paragraph",
+              "html": "When you comment with a <code>~</code> prefix, a GitHub Actions workflow dispatches to the matching specialist agent(s), which read your message, think, respond, and commit their work \u2014 all without leaving GitHub."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dependencies",
+      "title": "Dependencies",
+      "cards": [
+        {
+          "heading": "Runtime",
+          "content": [
+            {
+              "type": "table",
+              "headers": ["Package", "Version", "Role"],
+              "rows": [
+                [
+                  "<a href=\"https://github.com/badlogic/pi-mono\" target=\"_blank\" rel=\"noopener\">@mariozechner/pi-coding-agent</a>",
+                  "0.57.1",
+                  "Core AI agent \u2014 processes prompts, manages sessions"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Infrastructure",
+          "content": [
+            {
+              "type": "table",
+              "headers": ["Dependency", "Role"],
+              "rows": [
+                ["GitHub Actions", "Sole compute runtime \u2014 every issue event triggers a workflow"],
+                ["GitHub Issues", "Conversation interface \u2014 each issue maps to a persistent AI thread"],
+                ["Git", "Memory &amp; storage layer \u2014 sessions, history, and edits committed"],
+                ["<a href=\"https://bun.sh\" target=\"_blank\" rel=\"noopener\">Bun</a>", "JS/TS runtime for the agent orchestrator"],
+                ["<a href=\"https://cli.github.com\" target=\"_blank\" rel=\"noopener\">gh CLI</a>", "GitHub API interaction \u2014 issues, comments, reactions"]
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "LLM Providers",
+          "headingSuffix": "(one required)",
+          "content": [
+            {
+              "type": "table",
+              "headers": ["Provider", "Config value", "Example model", "API key secret"],
+              "rows": [
+                ["<a href=\"https://platform.openai.com/\" target=\"_blank\" rel=\"noopener\">OpenAI</a>", "<code>openai</code>", "<code>gpt-5.4</code> (default)", "<code>OPENAI_API_KEY</code>"],
+                ["<a href=\"https://console.anthropic.com/\" target=\"_blank\" rel=\"noopener\">Anthropic</a>", "<code>anthropic</code>", "<code>claude-sonnet-4-20250514</code>", "<code>ANTHROPIC_API_KEY</code>"],
+                ["<a href=\"https://aistudio.google.com/\" target=\"_blank\" rel=\"noopener\">Google Gemini</a>", "<code>google</code>", "<code>gemini-2.5-pro</code>, <code>gemini-2.5-flash</code>", "<code>GEMINI_API_KEY</code>"],
+                ["<a href=\"https://console.x.ai/\" target=\"_blank\" rel=\"noopener\">xAI</a>", "<code>xai</code>", "<code>grok-3</code>, <code>grok-3-mini</code>", "<code>XAI_API_KEY</code>"],
+                ["<a href=\"https://openrouter.ai/\" target=\"_blank\" rel=\"noopener\">DeepSeek (via OpenRouter)</a>", "<code>openrouter</code>", "<code>deepseek/deepseek-r1</code>", "<code>OPENROUTER_API_KEY</code>"],
+                ["<a href=\"https://console.mistral.ai/\" target=\"_blank\" rel=\"noopener\">Mistral</a>", "<code>mistral</code>", "<code>mistral-large-latest</code>", "<code>MISTRAL_API_KEY</code>"],
+                ["<a href=\"https://console.groq.com/\" target=\"_blank\" rel=\"noopener\">Groq</a>", "<code>groq</code>", "<code>deepseek-r1-distill-llama-70b</code>", "<code>GROQ_API_KEY</code>"],
+                ["<a href=\"https://openrouter.ai/\" target=\"_blank\" rel=\"noopener\">OpenRouter</a>", "<code>openrouter</code>", "any model on openrouter.ai", "<code>OPENROUTER_API_KEY</code>"]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "structure",
+      "title": "Project Structure",
+      "cards": [
+        {
+          "content": [
+            {
+              "type": "codeblock",
+              "lines": [
+                { "path": ".github-agenticana-intelligence/", "comment": "Core agent framework" },
+                { "path": "  .pi/", "comment": "Agent personality, skills &amp; LLM config" },
+                { "path": "  agents/", "comment": "20 specialist agent definitions (.md + .yaml)" },
+                { "path": "  docs/", "comment": "Architecture decisions &amp; design docs" },
+                { "path": "  install/", "comment": "Setup scripts &amp; bootstrap templates" },
+                { "path": "  lifecycle/", "comment": "Agent orchestrator &amp; runtime hooks" },
+                { "path": "  router/", "comment": "Complexity-based model tier routing" },
+                { "path": "  skills/", "comment": "Composable agent capabilities (core + domain)" },
+                { "path": "  public-fabric/", "comment": "This page \u2014 public repo showcase" },
+                { "path": "", "comment": "" },
+                { "path": ".github/", "comment": "GitHub Actions workflows" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "providers",
+      "title": "Configuration",
+      "cards": [
+        {
+          "heading": "Change the Model",
+          "content": [
+            {
+              "type": "paragraph",
+              "html": "Edit <code>.github-agenticana-intelligence/.pi/settings.json</code> and set <code>defaultProvider</code> and <code>defaultModel</code> to your chosen LLM. Add the matching API key as a repository secret."
+            },
+            {
+              "type": "codeblock",
+              "lines": [
+                { "path": "{", "comment": "" },
+                { "path": "  \"defaultProvider\": \"openai\",", "comment": "\u2190 provider id" },
+                { "path": "  \"defaultModel\": \"gpt-5.4\",", "comment": "\u2190 model name" },
+                { "path": "  \"defaultThinkingLevel\": \"high\"", "comment": "\u2190 low / medium / high" },
+                { "path": "}", "comment": "" }
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Other Options",
+          "content": [
+            {
+              "type": "list",
+              "items": [
+                "<strong>Dispatch routing</strong> \u2014 edit <code>dispatch.yaml</code> to change which labels route to which agents and execution modes.",
+                "<strong>Filter by label</strong> \u2014 edit the workflow file to only trigger on issues with a specific label.",
+                "<strong>Adjust thinking level</strong> \u2014 set <code>defaultThinkingLevel</code> to <code>\"low\"</code>, <code>\"medium\"</code>, or <code>\"high\"</code> for different task complexities."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "Security",
+      "cards": [
+        {
+          "content": [
+            {
+              "type": "paragraph",
+              "html": "The workflow only responds to repository <strong>owners, members, and collaborators</strong>. Random users cannot trigger the agent on public repos."
+            },
+            {
+              "type": "paragraph",
+              "html": "If you plan to use Agenticana Intelligence for anything private, <strong>make the repo private</strong>. Public repos mean your conversation history is visible to everyone, but get generous GitHub Actions usage."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "community",
+      "title": "Community",
+      "grid": "grid-2",
+      "cards": [
+        {
+          "heading": "Contributing",
+          "content": [
+            {
+              "type": "list",
+              "items": [
+                "Fork the repo &amp; create a branch from <code>main</code>",
+                "Make small, reviewable increments",
+                "Test locally with <code>bun install</code>",
+                "Open a PR with a clear description"
+              ]
+            },
+            {
+              "type": "paragraph",
+              "html": "Code is TypeScript, executed with Bun. Docs are Markdown.<br>Every commit is permanent and auditable.",
+              "style": "margin-top:.6rem;font-size:.85rem"
+            }
+          ]
+        },
+        {
+          "heading": "Code of Conduct",
+          "content": [
+            {
+              "type": "paragraph",
+              "html": "Built on the principle that <strong>the active ingredient is human judgment</strong>. The project follows the <a class=\"link\" href=\"https://www.contributor-covenant.org/\" target=\"_blank\" rel=\"noopener\">Contributor Covenant</a> extended by four governing laws:"
+            },
+            {
+              "type": "list",
+              "items": [
+                "<strong>Zeroth:</strong> Protect Humanity",
+                "<strong>First:</strong> Do No Harm",
+                "<strong>Second:</strong> Obey the Human",
+                "<strong>Third:</strong> Preserve Integrity"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "footer": {
+    "repoUrl": "https://github.com/japer-technology/github-agenticana-intelligence",
+    "repoName": "japer-technology/github-agenticana-intelligence",
+    "tagline": "20 Agents, One Constellation"
+  }
+}
