@@ -55,7 +55,7 @@ export function scoreComplexity(prompt: string): ComplexityScore {
   }
 
   // Code blocks suggest technical depth
-  const codeBlocks = (prompt.match(/```/g) || []).length / 2;
+  const codeBlocks = Math.floor((prompt.match(/```/g) || []).length / 2);
   if (codeBlocks >= 2) {
     score += 15;
     reasons.push("multiple code blocks");
@@ -104,7 +104,7 @@ export function selectModel(
     anthropic: {
       lite: "claude-3-haiku-20241022",
       flash: "claude-3-5-sonnet-20241022",
-      pro: "claude-3-5-sonnet-20241022",
+      pro: "claude-3-5-opus-20241022",
       "pro-extended": "claude-4-opus-20260101",
     },
     google: {
