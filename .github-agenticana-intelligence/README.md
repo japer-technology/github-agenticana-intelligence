@@ -4,6 +4,8 @@
 
 Agenticana Intelligence is activated by the `~` prefix on issues and comments. It routes prompts to specialist agents through a dispatch system, selects model tiers based on complexity scoring, and supports single-agent, swarm, and simulacrum execution modes — while keeping all session state, file changes, and conversation history in Git.
 
+### https://github.com/ashrafmusa/agenticana using GitHub as Infrastructure
+
 ---
 
 ## How It Works
