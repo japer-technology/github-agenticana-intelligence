@@ -76,3 +76,38 @@ routes:
     mode: swarm
     agents: [frontend-specialist, backend-specialist, database-architect]
     model_tier: flash
+
+  - label: code-archaeology
+    agent: code-archaeologist
+    model_tier: flash
+    skills: [core, codebase-analysis]
+
+  - label: explore
+    agent: explorer-agent
+    model_tier: lite
+    skills: [core, research]
+
+  - label: pentest
+    agent: penetration-tester
+    model_tier: pro
+    skills: [core, red-team-tactics]
+
+  - label: product
+    agent: product-manager
+    model_tier: flash
+    skills: [core, product]
+
+  - label: backlog
+    agent: product-owner
+    model_tier: flash
+    skills: [core, agile]
+
+  - label: planning
+    agent: project-planner
+    model_tier: flash
+    skills: [core, planning]
+
+  - label: qa
+    agent: qa-automation-engineer
+    model_tier: flash
+    skills: [core, qa]

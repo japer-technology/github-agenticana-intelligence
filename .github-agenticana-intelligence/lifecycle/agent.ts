@@ -66,6 +66,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { resolve } from "path";
+import { route, type RouterDecision } from "../router/router";
 
 // ─── Paths and event context ───────────────────────────────────────────────────
 // `import.meta.dir` resolves to `.github-agenticana-intelligence/lifecycle/`; stepping up one level
@@ -156,6 +157,114 @@ const reactionState = existsSync("/tmp/reaction-state.json")
   ? JSON.parse(readFileSync("/tmp/reaction-state.json", "utf-8"))
   : null;
 
+// ─── Dispatch routing types ─────────────────────────────────────────────────
+interface DispatchRoute {
+  label: string;
+  agent?: string;
+  agents?: string[];
+  mode?: string;
+  model_tier?: string;
+  skills?: string[];
+}
+
+interface DispatchConfig {
+  default_agent: string;
+  auto_route: boolean;
+  routes: DispatchRoute[];
+}
+
+/**
+ * Parse the dispatch.yaml configuration file.
+ *
+ * This is a purpose-built parser for the dispatch.yaml format rather than a
+ * general-purpose YAML parser.  It handles the specific structures used:
+ * top-level scalar key-value pairs and an array of route objects with scalar
+ * and inline-array values.
+ */
+function parseDispatchYaml(content: string): DispatchConfig {
+  const lines = content.split("\n");
+  const config: Record<string, unknown> = {};
+  const routes: DispatchRoute[] = [];
+  let currentRoute: Record<string, unknown> | null = null;
+  let inRoutes = false;
+
+  for (const line of lines) {
+    const trimmed = line.trimEnd();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    // Top-level key: value
+    if (!trimmed.startsWith(" ") && !trimmed.startsWith("-")) {
+      const colonIdx = trimmed.indexOf(":");
+      if (colonIdx > 0) {
+        const key = trimmed.slice(0, colonIdx).trim();
+        const val = trimmed.slice(colonIdx + 1).trim();
+        if (key === "routes") {
+          inRoutes = true;
+        } else {
+          config[key] = val === "true" ? true : val === "false" ? false : val;
+        }
+      }
+      continue;
+    }
+
+    if (!inRoutes) continue;
+
+    // New route entry: "  - label: value"
+    const dashMatch = trimmed.match(/^\s+-\s+(\w+):\s*(.*)$/);
+    if (dashMatch) {
+      if (currentRoute) routes.push(currentRoute as unknown as DispatchRoute);
+      currentRoute = {};
+      const key = dashMatch[1];
+      const val = dashMatch[2];
+      currentRoute[key] = parseYamlValue(val);
+      continue;
+    }
+
+    // Route property: "    key: value"
+    const propMatch = trimmed.match(/^\s+(\w+):\s*(.*)$/);
+    if (propMatch && currentRoute) {
+      const key = propMatch[1];
+      const val = propMatch[2];
+      currentRoute[key] = parseYamlValue(val);
+    }
+  }
+  if (currentRoute) routes.push(currentRoute as unknown as DispatchRoute);
+
+  return {
+    default_agent: (config.default_agent as string) ?? "orchestrator",
+    auto_route: (config.auto_route as boolean) ?? true,
+    routes,
+  };
+}
+
+/** Parse a YAML inline value — handles booleans, inline arrays, and strings. */
+function parseYamlValue(val: string): string | boolean | string[] {
+  if (val === "true") return true;
+  if (val === "false") return false;
+  // Inline array: [a, b, c]
+  const arrMatch = val.match(/^\[(.+)\]$/);
+  if (arrMatch) {
+    return arrMatch[1].split(",").map((s) => s.trim());
+  }
+  return val;
+}
+
+/**
+ * Resolve which agent(s) to invoke based on issue labels and dispatch config.
+ * Returns the matched route (if any), the resolved agent name, and the skills.
+ */
+function resolveDispatch(
+  dispatchConfig: DispatchConfig,
+  issueLabels: string[]
+): { matchedRoute: DispatchRoute | null; agentName: string; skills: string[] } {
+  const labelsLower = issueLabels.map((l) => l.toLowerCase());
+  const matchedRoute =
+    dispatchConfig.routes.find((r) => labelsLower.includes(r.label.toLowerCase())) ?? null;
+  const agentName = matchedRoute?.agent ?? dispatchConfig.default_agent;
+  const skills = matchedRoute?.skills ?? [];
+  return { matchedRoute, agentName, skills };
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main(): Promise<void> {
 
@@ -243,6 +352,56 @@ try {
     );
   }
 
+  // ── Dispatch: resolve agent from labels + dispatch.yaml ──────────────────────
+  const dispatchPath = resolve(agenticanaDir, "dispatch.yaml");
+  const dispatchConfig = existsSync(dispatchPath)
+    ? parseDispatchYaml(readFileSync(dispatchPath, "utf-8"))
+    : { default_agent: "orchestrator", auto_route: true, routes: [] };
+
+  const issueLabels: string[] = (event.issue.labels ?? []).map((l: { name: string }) => l.name);
+  const { matchedRoute, agentName, skills: routeSkills } = resolveDispatch(dispatchConfig, issueLabels);
+
+  console.log(
+    matchedRoute
+      ? `Dispatch: label "${matchedRoute.label}" → agent "${agentName}"` +
+        (matchedRoute.mode ? ` (mode: ${matchedRoute.mode})` : "")
+      : `Dispatch: no label match → default agent "${agentName}"`
+  );
+
+  // ── Load agent identity ────────────────────────────────────────────────────
+  const agentIdentityPath = resolve(agenticanaDir, "agents", `${agentName}.md`);
+  let agentIdentity = "";
+  if (existsSync(agentIdentityPath)) {
+    agentIdentity = readFileSync(agentIdentityPath, "utf-8");
+    console.log(`Loaded agent identity: ${agentIdentityPath} (${agentIdentity.length} chars)`);
+  } else {
+    console.log(`No agent identity file found at ${agentIdentityPath}`);
+  }
+
+  // ── Route: complexity-aware model selection ────────────────────────────────
+  let routerDecision: RouterDecision | null = null;
+  if (dispatchConfig.auto_route) {
+    try {
+      routerDecision = route({
+        task: prompt,
+        agentName,
+        skills: routeSkills,
+        agenticanaRoot: agenticanaDir,
+      });
+      console.log(
+        `Router: complexity=${routerDecision.complexity_score}, tier=${routerDecision.tier}, ` +
+        `strategy=${routerDecision.strategy}, tokens=${routerDecision.estimated_tokens}/${routerDecision.token_budget}`
+      );
+    } catch (e) {
+      console.error("Router failed, falling back to configured model:", e);
+    }
+  }
+
+  // ── Build dispatched prompt (inject agent identity as context) ─────────────
+  const dispatchedPrompt = agentIdentity
+    ? `[You are the "${agentName}" specialist agent. Follow your identity and guidelines below.]\n\n${agentIdentity}\n\n---\n\n${prompt}`
+    : prompt;
+
   // ── Run the pi agent ─────────────────────────────────────────────────────────
   const piBin = resolve(agenticanaDir, "node_modules", ".bin", "pi");
   const piArgs = [
@@ -257,7 +416,7 @@ try {
     "--session-dir",
     sessionsDirRelative,
     "-p",
-    prompt,
+    dispatchedPrompt,
   ];
   if (mode === "resume" && sessionPath) {
     piArgs.push("--session", sessionPath);
