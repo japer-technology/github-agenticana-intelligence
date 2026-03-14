@@ -66,6 +66,7 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { resolve } from "path";
+import { route, type RouterDecision } from "../router/router";
 
 // ─── Paths and event context ───────────────────────────────────────────────────
 // `import.meta.dir` resolves to `.github-agenticana-intelligence/lifecycle/`; stepping up one level
@@ -156,6 +157,140 @@ const reactionState = existsSync("/tmp/reaction-state.json")
   ? JSON.parse(readFileSync("/tmp/reaction-state.json", "utf-8"))
   : null;
 
+// ─── Dispatch routing types ─────────────────────────────────────────────────
+interface DispatchRoute {
+  label: string;
+  agent?: string;
+  agents?: string[];
+  mode?: string;
+  model_tier?: string;
+  skills?: string[];
+}
+
+interface DispatchConfig {
+  default_agent: string;
+  auto_route: boolean;
+  routes: DispatchRoute[];
+}
+
+/**
+ * Parse the dispatch.yaml configuration file.
+ *
+ * This is a purpose-built parser for the dispatch.yaml format rather than a
+ * general-purpose YAML parser.  It handles the specific structures used:
+ * top-level scalar key-value pairs and an array of route objects with scalar
+ * and inline-array values.
+ */
+function parseDispatchYaml(content: string): DispatchConfig {
+  const lines = content.split("\n");
+  const config: Record<string, unknown> = {};
+  const routes: DispatchRoute[] = [];
+  let currentRoute: Record<string, unknown> | null = null;
+  let inRoutes = false;
+
+  for (const line of lines) {
+    const trimmed = line.trimEnd();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    // Top-level key: value
+    if (!trimmed.startsWith(" ") && !trimmed.startsWith("-")) {
+      const colonIdx = trimmed.indexOf(":");
+      if (colonIdx > 0) {
+        const key = trimmed.slice(0, colonIdx).trim();
+        const val = trimmed.slice(colonIdx + 1).trim();
+        if (key === "routes") {
+          inRoutes = true;
+        } else {
+          config[key] = val === "true" ? true : val === "false" ? false : val;
+        }
+      }
+      continue;
+    }
+
+    if (!inRoutes) continue;
+
+    // New route entry: "  - label: value"
+    const dashMatch = trimmed.match(/^\s+-\s+([\w-]+):\s*(.*)$/);
+    if (dashMatch) {
+      if (currentRoute) routes.push(currentRoute as unknown as DispatchRoute);
+      currentRoute = {};
+      const key = dashMatch[1];
+      const val = dashMatch[2];
+      currentRoute[key] = parseYamlValue(val);
+      continue;
+    }
+
+    // Route property: "    key: value"
+    const propMatch = trimmed.match(/^\s+([\w-]+):\s*(.*)$/);
+    if (propMatch && currentRoute) {
+      const key = propMatch[1];
+      const val = propMatch[2];
+      currentRoute[key] = parseYamlValue(val);
+    }
+  }
+  if (currentRoute) routes.push(currentRoute as unknown as DispatchRoute);
+
+  return {
+    default_agent: (config.default_agent as string) ?? "orchestrator",
+    auto_route: (config.auto_route as boolean) ?? true,
+    routes,
+  };
+}
+
+/** Parse a YAML inline value — handles booleans, inline arrays, and strings. */
+function parseYamlValue(val: string): string | boolean | string[] {
+  if (val === "true") return true;
+  if (val === "false") return false;
+  // Inline array: [a, b, c]
+  const arrMatch = val.match(/^\[(.+)\]$/);
+  if (arrMatch) {
+    return arrMatch[1].split(",").map((s) => s.trim());
+  }
+  return val;
+}
+
+/**
+ * Resolve which agent(s) to invoke based on issue labels and dispatch config.
+ * Returns the matched route (if any), the list of agents to invoke, the
+ * execution mode, and the skills.
+ */
+function resolveDispatch(
+  dispatchConfig: DispatchConfig,
+  issueLabels: string[]
+): {
+  matchedRoute: DispatchRoute | null;
+  agents: string[];
+  mode: "single" | "swarm" | "simulacrum";
+  skills: string[];
+} {
+  const labelsLower = issueLabels.map((l) => l.toLowerCase());
+  const matchedRoute =
+    dispatchConfig.routes.find((r) => labelsLower.includes(r.label.toLowerCase())) ?? null;
+
+  if (!matchedRoute) {
+    return {
+      matchedRoute: null,
+      agents: [dispatchConfig.default_agent],
+      mode: "single",
+      skills: [],
+    };
+  }
+
+  const mode =
+    matchedRoute.mode === "swarm"
+      ? "swarm" as const
+      : matchedRoute.mode === "simulacrum"
+        ? "simulacrum" as const
+        : "single" as const;
+
+  const agents =
+    matchedRoute.agents && matchedRoute.agents.length > 0
+      ? matchedRoute.agents
+      : [matchedRoute.agent ?? dispatchConfig.default_agent];
+
+  return { matchedRoute, agents, mode, skills: matchedRoute.skills ?? [] };
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main(): Promise<void> {
 
@@ -243,47 +378,140 @@ try {
     );
   }
 
-  // ── Run the pi agent ─────────────────────────────────────────────────────────
-  const piBin = resolve(agenticanaDir, "node_modules", ".bin", "pi");
-  const piArgs = [
-    piBin,
-    "--mode",
-    "json",
-    "--provider",
-    configuredProvider,
-    "--model",
-    configuredModel,
-    ...(configuredThinking ? ["--thinking", configuredThinking] : []),
-    "--session-dir",
-    sessionsDirRelative,
-    "-p",
-    prompt,
-  ];
-  if (mode === "resume" && sessionPath) {
-    piArgs.push("--session", sessionPath);
-  }
+  // ── Dispatch: resolve agent(s) from labels + dispatch.yaml ─────────────────
+  const dispatchPath = resolve(agenticanaDir, "dispatch.yaml");
+  const dispatchConfig = existsSync(dispatchPath)
+    ? parseDispatchYaml(readFileSync(dispatchPath, "utf-8"))
+    : { default_agent: "orchestrator", auto_route: true, routes: [] };
 
-  const pi = Bun.spawn(piArgs, { stdout: "pipe", stderr: "inherit" });
-  const tee = Bun.spawn(["tee", "/tmp/agent-raw.jsonl"], { stdin: pi.stdout, stdout: "inherit" });
-  await tee.exited;
+  const issueLabels: string[] = (event.issue.labels ?? []).map((l: { name: string }) => l.name);
+  const { matchedRoute, agents: dispatchedAgents, mode: dispatchMode, skills: routeSkills } =
+    resolveDispatch(dispatchConfig, issueLabels);
 
-  const piExitCode = await pi.exited;
-  if (piExitCode !== 0) {
-    throw new Error(
-      `pi agent exited with code ${piExitCode} (provider: ${configuredProvider}, model: ${configuredModel}). ` +
-      `This may indicate an invalid or misspelled model ID in .pi/settings.json. ` +
-      `Check the workflow logs above for details.`
-    );
-  }
-
-  // ── Extract final assistant text ─────────────────────────────────────────────
-  const tac = Bun.spawn(["tac", "/tmp/agent-raw.jsonl"], { stdout: "pipe" });
-  const jq = Bun.spawn(
-    ["jq", "-r", "-s", '[ .[] | select(.type == "message_end" and .message.role == "assistant") | select((.message.content // []) | map(select(.type == "text")) | length > 0) ] | .[0].message.content[] | select(.type == "text") | .text'],
-    { stdin: tac.stdout, stdout: "pipe" }
+  console.log(
+    matchedRoute
+      ? `Dispatch: label "${matchedRoute.label}" → ${dispatchMode} [${dispatchedAgents.join(", ")}]`
+      : `Dispatch: no label match → default agent "${dispatchedAgents[0]}"`
   );
-  const agentText = await new Response(jq.stdout).text();
-  await jq.exited;
+
+  // ── Invoke all agent(s) in a single pipeline ──────────────────────────────
+  // Single mode: one agent, one invocation.
+  // Swarm mode: each agent runs independently on the same prompt; responses are combined.
+  // Simulacrum mode: agents run sequentially, each seeing prior agents' responses to
+  //                  enable structured debate; responses are combined into a single comment.
+  const piBin = resolve(agenticanaDir, "node_modules", ".bin", "pi");
+  const agentResponses: { agent: string; text: string }[] = [];
+  let simulacrumContext = "";
+
+  // jq filter to extract the final assistant text from JSONL output
+  const jqAssistantFilter =
+    '[ .[] | select(.type == "message_end" and .message.role == "assistant") | select((.message.content // []) | map(select(.type == "text")) | length > 0) ] | .[0].message.content[] | select(.type == "text") | .text';
+
+  for (const currentAgent of dispatchedAgents) {
+    console.log(`\n── Invoking agent: ${currentAgent} (${dispatchMode}) ──`);
+
+    // Load agent identity
+    const identityPath = resolve(agenticanaDir, "agents", `${currentAgent}.md`);
+    let identity = "";
+    if (existsSync(identityPath)) {
+      identity = readFileSync(identityPath, "utf-8");
+      console.log(`  Loaded identity: ${identityPath} (${identity.length} chars)`);
+    }
+
+    // Route: complexity-aware model selection
+    if (dispatchConfig.auto_route) {
+      try {
+        const decision = route({
+          task: prompt,
+          agentName: currentAgent,
+          skills: routeSkills,
+          agenticanaRoot: agenticanaDir,
+        });
+        console.log(
+          `  Router: complexity=${decision.complexity_score}, tier=${decision.tier}, ` +
+          `strategy=${decision.strategy}, tokens=${decision.estimated_tokens}/${decision.token_budget}`
+        );
+      } catch (e) {
+        console.error("  Router scoring failed (non-fatal):", e);
+      }
+    }
+
+    // Build the prompt for this agent
+    let agentPrompt = prompt;
+    if (identity) {
+      agentPrompt = `[You are the "${currentAgent}" specialist agent. Follow your identity and guidelines below.]\n\n${identity}\n\n---\n\n${prompt}`;
+    }
+    // In simulacrum mode, append prior agents' responses so each agent
+    // can build on / respond to earlier perspectives.
+    if (dispatchMode === "simulacrum" && simulacrumContext) {
+      agentPrompt += `\n\n---\n\n**Prior agent perspectives (for your reference in this collaborative discussion):**\n\n${simulacrumContext}`;
+    }
+
+    // Run the pi agent
+    const outputFile = `/tmp/agent-raw-${currentAgent}.jsonl`;
+    const piArgs = [
+      piBin,
+      "--mode", "json",
+      "--provider", configuredProvider,
+      "--model", configuredModel,
+      ...(configuredThinking ? ["--thinking", configuredThinking] : []),
+      "--session-dir", sessionsDirRelative,
+      "-p", agentPrompt,
+    ];
+    if (mode === "resume" && sessionPath) {
+      piArgs.push("--session", sessionPath);
+    }
+
+    const piProc = Bun.spawn(piArgs, { stdout: "pipe", stderr: "inherit" });
+    const teeProc = Bun.spawn(["tee", outputFile], { stdin: piProc.stdout, stdout: "inherit" });
+    await teeProc.exited;
+
+    const piExitCode = await piProc.exited;
+    if (piExitCode !== 0) {
+      console.error(`  pi agent (${currentAgent}) exited with code ${piExitCode}`);
+      agentResponses.push({ agent: currentAgent, text: `⚠️ Agent "${currentAgent}" failed (exit code ${piExitCode}).` });
+      continue;
+    }
+
+    // Extract final assistant text
+    const tac = Bun.spawn(["tac", outputFile], { stdout: "pipe" });
+    const jq = Bun.spawn(
+      ["jq", "-r", "-s", jqAssistantFilter],
+      { stdin: tac.stdout, stdout: "pipe" }
+    );
+    const text = (await new Response(jq.stdout).text()).trim();
+    await jq.exited;
+
+    agentResponses.push({ agent: currentAgent, text });
+    console.log(`  Response: ${text.length} chars`);
+
+    // In simulacrum mode, accumulate context for the next agent
+    if (dispatchMode === "simulacrum") {
+      simulacrumContext += `### ${currentAgent}\n${text}\n\n`;
+    }
+  }
+
+  // ── Combine agent responses into a single reply ───────────────────────────
+  let agentText: string;
+  if (dispatchedAgents.length === 1) {
+    agentText = agentResponses[0]?.text ?? "";
+  } else {
+    // Multi-agent: format each agent's contribution with a header
+    const modeLabel = dispatchMode === "swarm" ? "Swarm" : "Simulacrum";
+    const sections = agentResponses.map(
+      (r) => `## 🤖 ${r.agent}\n\n${r.text}`
+    );
+    agentText = `_${modeLabel} response from ${dispatchedAgents.length} agents:_\n\n${sections.join("\n\n---\n\n")}`;
+  }
+
+  // Copy final output to standard location for downstream tools
+  const lastAgent = dispatchedAgents[dispatchedAgents.length - 1];
+  writeFileSync("/tmp/agent-raw.jsonl", "");
+  const lastOutputFile = `/tmp/agent-raw-${lastAgent}.jsonl`;
+  if (existsSync(lastOutputFile)) {
+    const lastOutput = readFileSync(lastOutputFile);
+    writeFileSync("/tmp/agent-raw.jsonl", lastOutput);
+  }
 
   // ── Determine latest session file ────────────────────────────────────────────
   const { stdout: latestSession } = await run([
