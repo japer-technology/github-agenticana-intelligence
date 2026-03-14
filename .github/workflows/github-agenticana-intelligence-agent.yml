@@ -325,10 +325,11 @@ jobs:
   # JOB 3 — run-gitpages
   #
   # Purpose : Publish the agent's public-fabric directory as a GitHub Pages site.
-  # Trigger : push to main.
+  # Trigger : runs after run-agent / run-install complete (or immediately on push).
   # ────────────────────────────────────────────────────────────────────────────
   run-gitpages:
-    if: github.event_name == 'push'
+    needs: [run-agent, run-install]
+    if: always() && !cancelled()
     runs-on: ubuntu-latest
 
     concurrency:
@@ -342,6 +343,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          ref: main
 
       - name: Check public-fabric exists
         id: check-folder
