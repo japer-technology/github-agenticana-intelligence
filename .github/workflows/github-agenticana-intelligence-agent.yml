@@ -1,5 +1,5 @@
 # ╔══════════════════════════════════════════════════════════════════════════════╗
-# ║  Agenticana Intelligence — Agent Workflow (Version 1.0.1)                    ║
+# ║  Agenticana Intelligence — Agent Workflow (Version 1.0.2)                    ║
 # ║                                                                              ║
 # ║  A 20-agent Sovereign AI Developer OS that lives inside your GitHub          ║
 # ║  repository. Agenticana responds to `~`.                                     ║
@@ -9,7 +9,7 @@
 # ║    run-agent     — AI agent that responds to issues and comments on `~`.     ║
 # ║    run-gitpages  — Publishes the agent's public-fabric to GitHub Pages.      ║
 # ║                                                                              ║
-# ║  Docs: https://github.com/japer-technology/github-agenticana-intelligence   ║
+# ║  Docs: https://github.com/japer-technology/github-agenticana-intelligence    ║
 # ╚══════════════════════════════════════════════════════════════════════════════╝
 
 name: github-agenticana-intelligence-agent
