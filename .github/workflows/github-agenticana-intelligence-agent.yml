@@ -220,13 +220,11 @@ jobs:
     # Trigger guard:
     #   • Run on new issues whose title starts with `~`.
     #   • Run on issue comments whose body starts with `~`, but skip bot comments.
-    #   • Skip the master repo (japer-technology/github-agenticana-intelligence) entirely.
     if: >-
-      github.repository != 'japer-technology/github-agenticana-intelligence'
-      && ((github.event_name == 'issues' && startsWith(github.event.issue.title, '~'))
-          || (github.event_name == 'issue_comment'
-              && !endsWith(github.event.comment.user.login, '[bot]')
-              && startsWith(github.event.comment.body, '~')))
+      (github.event_name == 'issues' && startsWith(github.event.issue.title, '~'))
+      || (github.event_name == 'issue_comment'
+          && !endsWith(github.event.comment.user.login, '[bot]')
+          && startsWith(github.event.comment.body, '~'))
     steps:
 
       # 1. AUTHORIZATION — verify the actor has write-level (or higher) access.
@@ -301,9 +299,26 @@ jobs:
       # 7. INSTALL
       - name: Install dependencies
         if: steps.check-folder.outputs.exists == 'true'
-        run: cd .github-agenticana-intelligence && bun install --frozen-lockfile
+        run: |
+          cd .github-agenticana-intelligence
+          if [ -f bun.lock ]; then
+            bun install --frozen-lockfile
+          else
+            bun install
+          fi
 
-      # 8. RUN THE AGENT
+      # 8. BUILD (placeholder — Bun runs TypeScript natively)
+      - name: Build
+        if: steps.check-folder.outputs.exists == 'true'
+        run: |
+          cd .github-agenticana-intelligence
+          if jq -e '.scripts.build' package.json > /dev/null 2>&1; then
+            bun run build
+          else
+            echo "No build script found -- Bun runs TypeScript natively, no build needed."
+          fi
+
+      # 9. RUN THE AGENT
       - name: Run
         if: steps.check-folder.outputs.exists == 'true'
         env:
@@ -324,9 +339,7 @@ jobs:
   # Trigger : push to main.
   # ────────────────────────────────────────────────────────────────────────────
   run-gitpages:
-    if: >-
-      github.event_name == 'push'
-      && github.repository != 'japer-technology/github-agenticana-intelligence'
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
 
     concurrency:

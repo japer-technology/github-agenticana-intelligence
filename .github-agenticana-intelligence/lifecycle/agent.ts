@@ -156,6 +156,9 @@ const reactionState = existsSync("/tmp/reaction-state.json")
   ? JSON.parse(readFileSync("/tmp/reaction-state.json", "utf-8"))
   : null;
 
+// ─── Main ─────────────────────────────────────────────────────────────────────
+async function main(): Promise<void> {
+
 // Track whether the agent completed successfully so the `finally` block can
 // add the correct outcome reaction (👍 on success, 👎 on error).
 let succeeded = false;
@@ -327,12 +330,6 @@ try {
       await new Promise(r => setTimeout(r, pushBackoffs[i - 1]));
     }
   }
-  if (!pushSucceeded) {
-    console.error(
-      "All 10 push attempts failed. Auto-reconciliation could not be completed. " +
-      "Session state was not persisted to remote. Check the workflow logs for details."
-    );
-  }
 
   // ── Post reply as issue comment ──────────────────────────────────────────────
   const trimmedText = agentText.trim();
@@ -342,7 +339,17 @@ try {
   if (!pushSucceeded) {
     commentBody += `\n\n---\n⚠️ **Warning:** The agent's session state could not be pushed to the repository. Conversation context may not be preserved for follow-up comments. See the [workflow run logs](https://github.com/${repo}/actions) for details.`;
   }
+
+  // Post the comment first — user always gets a response even if push failed.
   await gh("issue", "comment", String(issueNumber), "--body", commentBody);
+
+  // Then fail the step so the workflow shows the real status.
+  if (!pushSucceeded) {
+    throw new Error(
+      "All 10 push attempts failed. Auto-reconciliation could not be completed. " +
+      "Session state was not persisted to remote. Check the workflow logs for details."
+    );
+  }
 
   succeeded = true;
 
@@ -362,3 +369,7 @@ try {
     }
   }
 }
+
+} // end main
+
+main();
