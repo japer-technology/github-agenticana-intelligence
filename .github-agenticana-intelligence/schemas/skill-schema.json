@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "Agenticana/skill-schema",
+  "title": "Agenticana Skill Specification",
+  "description": "Schema for SKILL.md frontmatter in Agenticana v2",
+  "type": "object",
+  "required": ["name", "tier", "token_cost"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique skill identifier (kebab-case)",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "One-line description of skill purpose"
+    },
+    "tier": {
+      "type": "integer",
+      "description": "Loading tier: 1=always, 2=domain-match, 3=explicit-only",
+      "enum": [1, 2, 3]
+    },
+    "token_cost": {
+      "type": "string",
+      "description": "Token cost classification when loaded",
+      "enum": ["LOW", "MEDIUM", "HIGH"]
+    },
+    "allowed-tools": {
+      "type": "string",
+      "description": "Comma-separated list of tools this skill permits"
+    },
+    "depends_on": {
+      "type": "array",
+      "description": "Other skills that must be loaded first",
+      "items": { "type": "string" }
+    },
+    "domains": {
+      "type": "array",
+      "description": "Engineering domains this skill covers",
+      "items": {
+        "type": "string",
+        "enum": ["frontend", "backend", "mobile", "security", "testing", "devops", "database", "architecture", "performance", "documentation", "game", "seo", "utility"]
+      }
+    },
+    "lazy_load": {
+      "type": "boolean",
+      "description": "If true, only load when explicitly requested (overrides tier for auto-routing)"
+    }
+  },
+  "additionalProperties": true
+}

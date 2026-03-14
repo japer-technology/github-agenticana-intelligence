@@ -4,7 +4,7 @@
 
 Agenticana Intelligence is activated by the `~` prefix on issues and comments. It routes prompts to specialist agents through a dispatch system, selects model tiers based on complexity scoring, and supports single-agent, swarm, and simulacrum execution modes — while keeping all session state, file changes, and conversation history in Git.
 
-### https://github.com/ashrafmusa/agenticana using GitHub as Infrastructure
+**Built on [ashrafmusa/agenticana](https://github.com/ashrafmusa/agenticana)** — the Sovereign AI Developer OS. Router, schemas, ReasoningBank, and exchange manifest are ported from the upstream project and adapted for GitHub Actions infrastructure.
 
 ---
 
@@ -68,7 +68,19 @@ Agenticana Intelligence is activated by the `~` prefix on issues and comments. I
 │   └── agent.ts                   # Core orchestrator
 ├── public-fabric/                 # GitHub Pages content
 ├── router/
-│   └── model-router.ts           # Complexity-based model selection
+│   ├── config.json               # Model tiers, thresholds, keywords (from upstream)
+│   ├── complexity-scorer.ts      # Task complexity scoring 1-10 (from upstream)
+│   ├── token-estimator.ts        # Pre-flight token estimation (from upstream)
+│   └── router.ts                 # Main routing engine (from upstream)
+├── schemas/
+│   ├── agent-schema.json         # Agent YAML validation schema (from upstream)
+│   └── skill-schema.json         # Skill SKILL.md validation schema (from upstream)
+├── memory/
+│   └── reasoning-bank/
+│       ├── decisions.json        # Seeded past decisions for pattern reuse (from upstream)
+│       └── patterns.json         # Distilled recurring patterns (from upstream)
+├── exchange/
+│   └── manifest.json             # Component exchange manifest (from upstream)
 ├── skills/
 │   ├── core/                      # Core skills (all agents)
 │   ├── domain/                    # 19 domain-specific skills
@@ -134,10 +146,10 @@ routes:
 
 | Tier | Complexity Score | Cost Range |
 |------|-----------------|------------|
-| Lite | 0–30 | $0.15–$0.25/1M tokens |
-| Flash | 31–60 | $0.50–$3.00/1M tokens |
-| Pro | 61–85 | $2.50–$15.00/1M tokens |
-| Pro-Extended | 86–100 | $5.00–$30.00/1M tokens |
+| Lite | 1–2 | $0.15–$0.25/1M tokens |
+| Flash | 3–4 | $0.50–$3.00/1M tokens |
+| Pro | 5–7 | $2.50–$15.00/1M tokens |
+| Pro-Extended | 8–10 | $5.00–$30.00/1M tokens |
 
 ---
 
