@@ -1,0 +1,135 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "Agenticana/agent-schema",
+  "title": "Agenticana Agent Specification",
+  "description": "Schema for structured agent YAML definitions in Agenticana v2",
+  "type": "object",
+  "required": ["name", "version", "model_tier", "complexity_tier", "skills", "capabilities"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique agent identifier (kebab-case)",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of this agent spec",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "description": {
+      "type": "string",
+      "description": "One-sentence description of what this agent does"
+    },
+    "model_tier": {
+      "type": "string",
+      "description": "Default model tier for this agent",
+      "enum": ["lite", "flash", "pro", "pro-extended"]
+    },
+    "complexity_tier": {
+      "type": "string",
+      "description": "Task complexity level this agent handles",
+      "enum": ["SIMPLE", "MODERATE", "COMPLEX"]
+    },
+    "token_budget": {
+      "type": "object",
+      "description": "Token budget constraints",
+      "properties": {
+        "context_max": { "type": "integer", "description": "Max input context tokens" },
+        "output_max": { "type": "integer", "description": "Max output tokens" },
+        "skill_slots": { "type": "integer", "description": "Max concurrent skills to load" }
+      },
+      "required": ["context_max", "output_max", "skill_slots"]
+    },
+    "skills": {
+      "type": "array",
+      "description": "List of skill names this agent uses (from skills/ directory)",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "tools": {
+      "type": "array",
+      "description": "Native tools this agent can use",
+      "items": {
+        "type": "string",
+        "enum": ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "Agent", "WebFetch", "MultiEdit"]
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "What this agent is capable of doing (short phrases)",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "boundaries": {
+      "type": "object",
+      "description": "Hard boundaries — what this agent CAN and CANNOT do",
+      "properties": {
+        "can": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cannot": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["can", "cannot"]
+    },
+    "learning": {
+      "type": "object",
+      "description": "Self-learning configuration",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "learns_from": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["trajectories", "patterns", "decisions"]
+          }
+        },
+        "improvement_signal": {
+          "type": "string",
+          "enum": ["success_rate", "token_efficiency", "speed", "user_satisfaction"]
+        },
+        "pattern_threshold": {
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 1.0,
+          "description": "Similarity threshold to reuse a learned pattern (0.0-1.0)"
+        }
+      }
+    },
+    "routing_hints": {
+      "type": "object",
+      "description": "Hints for the Model Router to select this agent",
+      "properties": {
+        "trigger_keywords": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "domain": {
+          "type": "string",
+          "description": "Primary domain (security, frontend, backend, mobile, etc.)"
+        },
+        "auto_invoke": {
+          "type": "boolean",
+          "description": "Can be invoked automatically without user confirmation"
+        }
+      }
+    },
+    "examples": {
+      "type": "array",
+      "description": "Example invocations for ReasoningBank seeding",
+      "items": {
+        "type": "object",
+        "properties": {
+          "task": { "type": "string" },
+          "approach": { "type": "string" },
+          "outcome": { "type": "string" }
+        },
+        "required": ["task", "approach", "outcome"]
+      }
+    }
+  },
+  "additionalProperties": false
+}

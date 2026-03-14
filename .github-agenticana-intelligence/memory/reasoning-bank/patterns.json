@@ -1,0 +1,59 @@
+{
+  "version": "2.0",
+  "description": "Distilled patterns from ReasoningBank decisions",
+  "last_distilled": null,
+  "total_patterns": 3,
+  "patterns": [
+    {
+      "id": "pat-001",
+      "name": "JWT Auth Pattern",
+      "description": "Standard JWT authentication with httpOnly cookies and refresh tokens",
+      "frequency": 4,
+      "confidence": 0.92,
+      "source_decisions": ["rb-001", "rb-002"],
+      "template": {
+        "approach": "bcrypt cost=12 + httpOnly cookies + short-lived access tokens (15min) + long-lived refresh tokens (7d)",
+        "key_decisions": [
+          "Never store JWT in localStorage",
+          "Use httpOnly + secure + sameSite cookies",
+          "Implement token rotation on refresh"
+        ]
+      },
+      "tags": ["auth", "jwt", "security", "backend"]
+    },
+    {
+      "id": "pat-002",
+      "name": "React Performance Pattern",
+      "description": "Standard approach to fixing slow React page loads",
+      "frequency": 3,
+      "confidence": 0.88,
+      "source_decisions": ["rb-004"],
+      "template": {
+        "approach": "Lighthouse audit → identify LCP/CLS issues → next/image for images → dynamic imports for below-fold → code splitting",
+        "key_decisions": [
+          "Always start with Lighthouse audit",
+          "Optimize images before code changes",
+          "Use dynamic imports for non-critical components"
+        ]
+      },
+      "tags": ["performance", "react", "next.js", "optimization"]
+    },
+    {
+      "id": "pat-003",
+      "name": "Multi-Tenant Schema Pattern",
+      "description": "Database schema design for multi-tenant SaaS applications",
+      "frequency": 2,
+      "confidence": 0.85,
+      "source_decisions": ["rb-003"],
+      "template": {
+        "approach": "Organization → User → Role → Permission hierarchy with RLS, composite indexes on tenant keys",
+        "key_decisions": [
+          "Use Row Level Security (RLS) for tenant isolation",
+          "Composite indexes on (org_id, user_id) for query performance",
+          "Soft deletes with deleted_at timestamp"
+        ]
+      },
+      "tags": ["database", "multi-tenant", "schema", "prisma"]
+    }
+  ]
+}
