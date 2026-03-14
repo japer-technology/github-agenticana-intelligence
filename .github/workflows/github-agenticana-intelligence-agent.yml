@@ -220,13 +220,11 @@ jobs:
     # Trigger guard:
     #   • Run on new issues whose title starts with `~`.
     #   • Run on issue comments whose body starts with `~`, but skip bot comments.
-    #   • Skip the master repo (japer-technology/github-agenticana-intelligence) entirely.
     if: >-
-      github.repository != 'japer-technology/github-agenticana-intelligence'
-      && ((github.event_name == 'issues' && startsWith(github.event.issue.title, '~'))
-          || (github.event_name == 'issue_comment'
-              && !endsWith(github.event.comment.user.login, '[bot]')
-              && startsWith(github.event.comment.body, '~')))
+      (github.event_name == 'issues' && startsWith(github.event.issue.title, '~'))
+      || (github.event_name == 'issue_comment'
+          && !endsWith(github.event.comment.user.login, '[bot]')
+          && startsWith(github.event.comment.body, '~'))
     steps:
 
       # 1. AUTHORIZATION — verify the actor has write-level (or higher) access.
@@ -326,7 +324,6 @@ jobs:
   run-gitpages:
     if: >-
       github.event_name == 'push'
-      && github.repository != 'japer-technology/github-agenticana-intelligence'
     runs-on: ubuntu-latest
 
     concurrency:
