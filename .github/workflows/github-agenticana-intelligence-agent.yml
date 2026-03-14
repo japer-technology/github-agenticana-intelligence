@@ -296,30 +296,8 @@ jobs:
           path: .github-agenticana-intelligence/node_modules
           key: ai-deps-${{ hashFiles('.github-agenticana-intelligence/bun.lock') }}
 
-      # 7. INSTALL
-      - name: Install dependencies
-        if: steps.check-folder.outputs.exists == 'true'
-        run: |
-          cd .github-agenticana-intelligence
-          if [ -f bun.lock ]; then
-            bun install --frozen-lockfile
-          else
-            bun install
-          fi
-
-      # 8. BUILD (placeholder — Bun runs TypeScript natively)
-      - name: Build
-        if: steps.check-folder.outputs.exists == 'true'
-        run: |
-          cd .github-agenticana-intelligence
-          if jq -e '.scripts.build' package.json > /dev/null 2>&1; then
-            bun run build
-          else
-            echo "No build script found -- Bun runs TypeScript natively, no build needed."
-          fi
-
-      # 9. RUN THE AGENT
-      - name: Run
+      # 7. INSTALL DEPENDENCIES AND RUN AGENT (single processing step)
+      - name: Process
         if: steps.check-folder.outputs.exists == 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -330,7 +308,18 @@ jobs:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun .github-agenticana-intelligence/lifecycle/agent.ts
+        run: |
+          cd .github-agenticana-intelligence
+          if [ -f bun.lock ]; then
+            bun install --frozen-lockfile
+          else
+            bun install
+          fi
+          if jq -e '.scripts.build' package.json > /dev/null 2>&1; then
+            bun run build
+          fi
+          cd ..
+          bun .github-agenticana-intelligence/lifecycle/agent.ts
 
   # ────────────────────────────────────────────────────────────────────────────
   # JOB 3 — run-gitpages
