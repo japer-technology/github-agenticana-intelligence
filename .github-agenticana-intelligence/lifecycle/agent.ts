@@ -403,6 +403,10 @@ try {
   const agentResponses: { agent: string; text: string }[] = [];
   let simulacrumContext = "";
 
+  // jq filter to extract the final assistant text from JSONL output
+  const jqAssistantFilter =
+    '[ .[] | select(.type == "message_end" and .message.role == "assistant") | select((.message.content // []) | map(select(.type == "text")) | length > 0) ] | .[0].message.content[] | select(.type == "text") | .text';
+
   for (const currentAgent of dispatchedAgents) {
     console.log(`\n── Invoking agent: ${currentAgent} (${dispatchMode}) ──`);
 
@@ -472,7 +476,7 @@ try {
     // Extract final assistant text
     const tac = Bun.spawn(["tac", outputFile], { stdout: "pipe" });
     const jq = Bun.spawn(
-      ["jq", "-r", "-s", '[ .[] | select(.type == "message_end" and .message.role == "assistant") | select((.message.content // []) | map(select(.type == "text")) | length > 0) ] | .[0].message.content[] | select(.type == "text") | .text'],
+      ["jq", "-r", "-s", jqAssistantFilter],
       { stdin: tac.stdout, stdout: "pipe" }
     );
     const text = (await new Response(jq.stdout).text()).trim();
@@ -501,9 +505,11 @@ try {
   }
 
   // Copy final output to standard location for downstream tools
+  const lastAgent = dispatchedAgents[dispatchedAgents.length - 1];
   writeFileSync("/tmp/agent-raw.jsonl", "");
-  if (existsSync(`/tmp/agent-raw-${dispatchedAgents[dispatchedAgents.length - 1]}.jsonl`)) {
-    const lastOutput = readFileSync(`/tmp/agent-raw-${dispatchedAgents[dispatchedAgents.length - 1]}.jsonl`);
+  const lastOutputFile = `/tmp/agent-raw-${lastAgent}.jsonl`;
+  if (existsSync(lastOutputFile)) {
+    const lastOutput = readFileSync(lastOutputFile);
     writeFileSync("/tmp/agent-raw.jsonl", lastOutput);
   }
 
