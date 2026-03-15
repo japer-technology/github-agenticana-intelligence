@@ -507,6 +507,7 @@ function writeSoulMemory(
       entries[existing].tags = tags;
       entries[existing].score = score;
       entries[existing].updated_at = now;
+      entries[existing].access_count = (entries[existing].access_count ?? 0) + 1;
     } else {
       entries.push({
         key,
@@ -673,15 +674,19 @@ function parseDispatchYaml(content: string): DispatchConfig {
   };
 }
 
-/** Parse a YAML inline value — handles booleans, inline arrays, and strings. */
-function parseYamlValue(val: string): string | boolean | string[] {
+/** Parse a YAML inline value — handles booleans, numbers, inline arrays, and strings. */
+function parseYamlValue(val: string): string | boolean | number | string[] {
   if (val === "true") return true;
   if (val === "false") return false;
-  // Inline array: [a, b, c]
-  const arrMatch = val.match(/^\[(.+)\]$/);
+  // Inline array: [a, b, c] or []
+  const arrMatch = val.match(/^\[(.*)\]$/);
   if (arrMatch) {
-    return arrMatch[1].split(",").map((s) => s.trim());
+    const inner = arrMatch[1].trim();
+    if (!inner) return [];
+    return inner.split(",").map((s) => s.trim());
   }
+  // Numeric values
+  if (/^-?\d+(\.\d+)?$/.test(val)) return Number(val);
   return val;
 }
 
@@ -1067,7 +1072,7 @@ try {
   }
 
   // Retry push up to 10 times with increasing backoff delays.
-  const pushBackoffs = [1000, 2000, 3000, 5000, 7000, 8000, 10000, 12000, 12000, 15000];
+  const pushBackoffs = [1000, 2000, 3000, 5000, 7000, 8000, 10000, 12000, 12000];
   let pushSucceeded = false;
   for (let i = 1; i <= 10; i++) {
     const push = await run(["git", "push", "origin", `HEAD:${defaultBranch}`]);
