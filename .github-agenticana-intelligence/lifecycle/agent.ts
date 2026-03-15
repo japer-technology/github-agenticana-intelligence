@@ -100,6 +100,20 @@ const RB_CONTEXT_THRESHOLD = 0.60;
 // Pattern distillation: auto-distill after this many decisions
 const DISTILL_THRESHOLD = 15;
 
+// Pattern auto-distillation confidence scoring
+const DISTILL_BASE_CONFIDENCE = 0.7;
+const DISTILL_CONFIDENCE_INCREMENT = 0.05;
+const DISTILL_MAX_CONFIDENCE = 0.98;
+
+// Soul memory scoring weights
+const SOUL_SCORE_BASE = 0.5;
+const SOUL_SCORE_RESPONSE_BONUS = 0.3;
+const SOUL_SCORE_FAST_PATH_BONUS = 0.1;
+const SOUL_SCORE_RESPONSE_THRESHOLD = 100;
+
+// Maximum characters shown per soul memory entry in agent prompt
+const MAX_MEMORY_PREVIEW_LENGTH = 200;
+
 // Parse the full GitHub Actions event payload (contains issue/comment details).
 const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH!, "utf-8"));
 
@@ -557,7 +571,7 @@ function autoDistillPatterns(agenticanaRoot: string): void {
         name: `${tag.charAt(0).toUpperCase() + tag.slice(1)} Pattern`,
         description: `Auto-distilled pattern from ${group.length} ${tag}-related decisions`,
         frequency: group.length,
-        confidence: Math.min(0.7 + group.length * 0.05, 0.98),
+        confidence: Math.min(DISTILL_BASE_CONFIDENCE + group.length * DISTILL_CONFIDENCE_INCREMENT, DISTILL_MAX_CONFIDENCE),
         source_decisions: group.map((d) => d.id),
         template: {
           approach: group[0].decision,
@@ -938,7 +952,7 @@ try {
       const topMemories = soulEntries
         .sort((a, b) => b.score - a.score)
         .slice(0, 5)
-        .map((e) => `- **${e.key}**: ${e.value.slice(0, 200)}`)
+        .map((e) => `- **${e.key}**: ${e.value.slice(0, MAX_MEMORY_PREVIEW_LENGTH)}`)
         .join("\n");
       agentPrompt += `\n\n---\n\n**Cross-session memory:**\n\n${topMemories}`;
     }
@@ -1122,13 +1136,18 @@ try {
 
   // ── Update soul memory with run summary ───────────────────────────────────
   writeSoulMemory(
-    `issue-${issueNumber}-${new Date().toISOString().slice(0, 10)}`,
+    `issue-${issueNumber}`,
     `Issue #${issueNumber}: ${dispatchMode} with ${dispatchedAgents.join(", ")} (${lastTier}/${lastStrategy}). ` +
     `Duration: ${(runDuration / 1000).toFixed(1)}s. ` +
     `Response: ${agentText.length} chars.` +
     (fastPathUsed ? " Fast-path used." : ""),
     [dispatchMode, lastTier, ...dispatchedAgents],
-    Math.min(0.5 + (agentText.length > 100 ? 0.3 : 0) + (fastPathUsed ? 0.1 : 0), 1.0),
+    Math.min(
+      SOUL_SCORE_BASE +
+      (agentText.length > SOUL_SCORE_RESPONSE_THRESHOLD ? SOUL_SCORE_RESPONSE_BONUS : 0) +
+      (fastPathUsed ? SOUL_SCORE_FAST_PATH_BONUS : 0),
+      1.0
+    ),
     agenticanaDir
   );
 
