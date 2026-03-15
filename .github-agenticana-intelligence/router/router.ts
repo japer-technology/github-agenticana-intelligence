@@ -143,6 +143,10 @@ function upgradeTier(
 ): "lite" | "flash" | "pro" | "pro-extended" {
   const tiers = ["lite", "flash", "pro", "pro-extended"] as const;
   const idx = tiers.indexOf(tier as (typeof tiers)[number]);
+  if (idx < 0) {
+    console.warn(`upgradeTier: unknown tier "${tier}", keeping as-is`);
+    return tier as "lite" | "flash" | "pro" | "pro-extended";
+  }
   return tiers[Math.min(idx + 1, tiers.length - 1)];
 }
 
