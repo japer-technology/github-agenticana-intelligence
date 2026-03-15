@@ -66,7 +66,8 @@
 
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { resolve } from "path";
-import { route, type RouterDecision } from "../router/router";
+import { route, recordStats, type RouterDecision } from "../router/router";
+import routerConfig from "../router/config.json";
 
 // ─── Paths and event context ───────────────────────────────────────────────────
 // `import.meta.dir` resolves to `.github-agenticana-intelligence/lifecycle/`; stepping up one level
@@ -84,6 +85,12 @@ const sessionsDirRelative = ".github-agenticana-intelligence/state/sessions";
 // GitHub enforces a ~65 535 character limit on issue comments; cap at 60 000
 // characters to leave a comfortable safety margin and avoid API rejections.
 const MAX_COMMENT_LENGTH = 60000;
+
+// ReasoningBank and ADR truncation limits
+const MAX_RB_TASK_LENGTH = 200;
+const MAX_RB_OUTCOME_LENGTH = 500;
+const MAX_ADR_SECTION_LENGTH = 2000;
+const MAX_ADR_PROMPT_LENGTH = 1000;
 
 // Parse the full GitHub Actions event payload (contains issue/comment details).
 const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH!, "utf-8"));
@@ -156,6 +163,169 @@ async function gh(...args: string[]): Promise<string> {
 const reactionState = existsSync("/tmp/reaction-state.json")
   ? JSON.parse(readFileSync("/tmp/reaction-state.json", "utf-8"))
   : null;
+
+// ─── ReasoningBank: keyword-similarity search ──────────────────────────────
+/**
+ * Search the ReasoningBank for past decisions similar to the current task.
+ * Uses Jaccard similarity over keywords (words > 3 chars).
+ * Returns the highest similarity score found (0–1).
+ */
+function searchReasoningBank(task: string, agenticanaRoot: string): number {
+  const rbPath = resolve(agenticanaRoot, "memory", "reasoning-bank", "decisions.json");
+  if (!existsSync(rbPath)) return 0;
+
+  try {
+    const rb = JSON.parse(readFileSync(rbPath, "utf-8"));
+    const decisions: { task: string; tags?: string[] }[] = rb.decisions ?? [];
+    if (decisions.length === 0) return 0;
+
+    const taskWords = new Set(
+      task.toLowerCase().split(/\s+/).filter((w) => w.length > 3)
+    );
+    if (taskWords.size === 0) return 0;
+
+    let maxSimilarity = 0;
+    for (const d of decisions) {
+      const decText = [d.task, ...(d.tags ?? [])].join(" ");
+      const decWords = new Set(
+        decText.toLowerCase().split(/\s+/).filter((w: string) => w.length > 3)
+      );
+      const intersection = [...taskWords].filter((w) => decWords.has(w)).length;
+      const union = new Set([...taskWords, ...decWords]).size;
+      const similarity = union > 0 ? intersection / union : 0;
+      if (similarity > maxSimilarity) maxSimilarity = similarity;
+    }
+    return maxSimilarity;
+  } catch {
+    return 0;
+  }
+}
+
+// ─── Model tier resolution ─────────────────────────────────────────────────
+/**
+ * Resolve a router-recommended tier to an actual model ID for the configured
+ * provider.  For lite/flash tiers, downgrades to a cheaper model.  For pro
+ * and above, returns the user's configured default model.
+ */
+function resolveModelForTier(
+  tier: string,
+  provider: string,
+  defaultModel: string
+): string {
+  if (tier === "pro" || tier === "pro-extended") return defaultModel;
+  const providerModels = routerConfig.provider_models as
+    Record<string, Record<string, string>> | undefined;
+  return providerModels?.[provider]?.[tier] ?? defaultModel;
+}
+
+// ─── Skill content loader ──────────────────────────────────────────────────
+/**
+ * Load SKILL.md files for the given skill names.  Searches multiple possible
+ * paths (flat, domain/, utility/).  Returns combined markdown or empty string.
+ */
+function loadSkillContent(skillNames: string[], agenticanaRoot: string): string {
+  const parts: string[] = [];
+  for (const skill of skillNames) {
+    const candidates = [
+      resolve(agenticanaRoot, "skills", skill, "SKILL.md"),
+      resolve(agenticanaRoot, "skills", "domain", skill, "SKILL.md"),
+      resolve(agenticanaRoot, "skills", "utility", skill, "SKILL.md"),
+    ];
+    for (const p of candidates) {
+      if (existsSync(p)) {
+        parts.push(`### Skill: ${skill}\n${readFileSync(p, "utf-8")}`);
+        break;
+      }
+    }
+  }
+  return parts.join("\n\n");
+}
+
+// ─── ReasoningBank decision recording ──────────────────────────────────────
+/**
+ * Append a new decision to the ReasoningBank for future pattern reuse.
+ */
+function recordDecisionToBank(
+  task: string,
+  agent: string,
+  outcome: string,
+  success: boolean,
+  model: string,
+  agenticanaRoot: string
+): void {
+  const rbPath = resolve(agenticanaRoot, "memory", "reasoning-bank", "decisions.json");
+  try {
+    const defaultRb = {
+      version: "2.0",
+      description: "Agenticana ReasoningBank",
+      last_consolidated: null,
+      total_decisions: 0,
+      decisions: [],
+    };
+    const rb = existsSync(rbPath)
+      ? JSON.parse(readFileSync(rbPath, "utf-8"))
+      : defaultRb;
+    const id = `rb-${String((rb.total_decisions ?? 0) + 1).padStart(3, "0")}`;
+    rb.decisions.push({
+      id,
+      timestamp: new Date().toISOString(),
+      task: task.slice(0, MAX_RB_TASK_LENGTH),
+      task_type: "auto",
+      agent,
+      decision: outcome.slice(0, MAX_RB_OUTCOME_LENGTH),
+      outcome: success ? "Task completed successfully" : "Task failed",
+      success,
+      tokens_used: null,
+      model_used: model,
+      embedding: null,
+      tags: [],
+    });
+    rb.total_decisions = rb.decisions.length;
+    writeFileSync(rbPath, JSON.stringify(rb, null, 2) + "\n");
+  } catch (e) {
+    console.error("Failed to record decision to ReasoningBank:", e);
+  }
+}
+
+// ─── ADR generation for simulacrum debates ─────────────────────────────────
+/**
+ * Generate an Architecture Decision Record from a simulacrum (multi-agent
+ * debate) session.  Writes to docs/decisions/.
+ */
+function generateADR(
+  agentResponses: { agent: string; text: string }[],
+  prompt: string,
+  agenticanaRoot: string
+): void {
+  const decisionsDir = resolve(agenticanaRoot, "docs", "decisions");
+  mkdirSync(decisionsDir, { recursive: true });
+
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const slug = prompt
+    .split("\n")[0]
+    .slice(0, 60)
+    .replace(/[^a-zA-Z0-9 ]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+  const filename = `ADR-${timestamp}-${slug || "untitled"}.md`;
+
+  const sections = agentResponses
+    .map((r) => `### ${r.agent}\n\n${r.text.slice(0, MAX_ADR_SECTION_LENGTH)}`)
+    .join("\n\n---\n\n");
+
+  const adr =
+    `# Architecture Decision Record\n\n` +
+    `**Date:** ${new Date().toISOString()}\n` +
+    `**Status:** Proposed\n` +
+    `**Mode:** Simulacrum (multi-agent debate)\n\n` +
+    `## Context\n\n${prompt.slice(0, MAX_ADR_PROMPT_LENGTH)}\n\n` +
+    `## Agent Perspectives\n\n${sections}\n\n` +
+    `## Decision\n\n_Synthesized from ${agentResponses.length} agent perspectives._\n`;
+
+  writeFileSync(resolve(decisionsDir, filename), adr);
+  console.log(`ADR generated: ${filename}`);
+}
 
 // ─── Dispatch routing types ─────────────────────────────────────────────────
 interface DispatchRoute {
@@ -402,6 +572,7 @@ try {
   const piBin = resolve(agenticanaDir, "node_modules", ".bin", "pi");
   const agentResponses: { agent: string; text: string }[] = [];
   let simulacrumContext = "";
+  let lastModelUsed = configuredModel;
 
   // jq filter to extract the final assistant text from JSONL output
   const jqAssistantFilter =
@@ -418,18 +589,35 @@ try {
       console.log(`  Loaded identity: ${identityPath} (${identity.length} chars)`);
     }
 
-    // Route: complexity-aware model selection
+    // Route: complexity-aware model selection (ReasoningBank + tier resolution)
+    let modelToUse = configuredModel;
     if (dispatchConfig.auto_route) {
       try {
+        const rbSimilarity = searchReasoningBank(prompt, agenticanaDir);
+        if (rbSimilarity > 0) {
+          console.log(`  ReasoningBank: similarity=${rbSimilarity.toFixed(2)}`);
+        }
+
         const decision = route({
           task: prompt,
           agentName: currentAgent,
           skills: routeSkills,
+          rb_similarity: rbSimilarity,
           agenticanaRoot: agenticanaDir,
         });
+        recordStats(decision);
+
+        modelToUse = resolveModelForTier(
+          decision.tier,
+          configuredProvider,
+          configuredModel
+        );
+        lastModelUsed = modelToUse;
         console.log(
           `  Router: complexity=${decision.complexity_score}, tier=${decision.tier}, ` +
-          `strategy=${decision.strategy}, tokens=${decision.estimated_tokens}/${decision.token_budget}`
+          `model=${modelToUse}, strategy=${decision.strategy}, ` +
+          `tokens=${decision.estimated_tokens}/${decision.token_budget}` +
+          (decision.handshake_suggestion ? " [handshake recommended]" : "")
         );
       } catch (e) {
         console.error("  Router scoring failed (non-fatal):", e);
@@ -447,13 +635,19 @@ try {
       agentPrompt += `\n\n---\n\n**Prior agent perspectives (for your reference in this collaborative discussion):**\n\n${simulacrumContext}`;
     }
 
+    // Inject skill content if available
+    const skillContent = loadSkillContent(routeSkills, agenticanaDir);
+    if (skillContent) {
+      agentPrompt += `\n\n---\n\n**Loaded skills:**\n\n${skillContent}`;
+    }
+
     // Run the pi agent
     const outputFile = `/tmp/agent-raw-${currentAgent}.jsonl`;
     const piArgs = [
       piBin,
       "--mode", "json",
       "--provider", configuredProvider,
-      "--model", configuredModel,
+      "--model", modelToUse,
       ...(configuredThinking ? ["--thinking", configuredThinking] : []),
       "--session-dir", sessionsDirRelative,
       "-p", agentPrompt,
@@ -502,6 +696,11 @@ try {
       (r) => `## 🤖 ${r.agent}\n\n${r.text}`
     );
     agentText = `_${modeLabel} response from ${dispatchedAgents.length} agents:_\n\n${sections.join("\n\n---\n\n")}`;
+  }
+
+  // Generate ADR for simulacrum debates
+  if (dispatchMode === "simulacrum" && agentResponses.length > 1) {
+    generateADR(agentResponses, prompt, agenticanaDir);
   }
 
   // Copy final output to standard location for downstream tools
@@ -580,6 +779,16 @@ try {
   }
 
   succeeded = true;
+
+  // Record successful decision to ReasoningBank for future pattern reuse
+  recordDecisionToBank(
+    prompt,
+    dispatchedAgents.join(", "),
+    agentText.slice(0, MAX_RB_OUTCOME_LENGTH),
+    true,
+    lastModelUsed,
+    agenticanaDir
+  );
 
 } finally {
   // ── Guaranteed outcome reaction: 👍 on success, 👎 on error ─────────────────

@@ -33,5 +33,35 @@
     "flash_vs_pro_cost_ratio": 0.1,
     "estimated_flash_tasks_percent": 40,
     "estimated_token_reduction_with_compression": 0.30
+  },
+  "provider_models": {
+    "openai": {
+      "lite": "gpt-4o-mini",
+      "flash": "gpt-4o"
+    },
+    "anthropic": {
+      "lite": "claude-3-5-haiku-latest",
+      "flash": "claude-3-5-sonnet-latest"
+    },
+    "google": {
+      "lite": "gemini-2.0-flash-lite",
+      "flash": "gemini-2.0-flash"
+    },
+    "xai": {
+      "lite": "grok-3-mini",
+      "flash": "grok-3-mini"
+    },
+    "openrouter": {
+      "lite": "google/gemini-2.0-flash-lite",
+      "flash": "google/gemini-2.0-flash"
+    },
+    "mistral": {
+      "lite": "mistral-small-latest",
+      "flash": "mistral-medium-latest"
+    },
+    "groq": {
+      "lite": "llama-3.3-70b-versatile",
+      "flash": "llama-3.3-70b-versatile"
+    }
   }
 }
