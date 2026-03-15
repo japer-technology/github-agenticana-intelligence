@@ -86,6 +86,12 @@ const sessionsDirRelative = ".github-agenticana-intelligence/state/sessions";
 // characters to leave a comfortable safety margin and avoid API rejections.
 const MAX_COMMENT_LENGTH = 60000;
 
+// ReasoningBank and ADR truncation limits
+const MAX_RB_TASK_LENGTH = 200;
+const MAX_RB_OUTCOME_LENGTH = 500;
+const MAX_ADR_SECTION_LENGTH = 2000;
+const MAX_ADR_PROMPT_LENGTH = 1000;
+
 // Parse the full GitHub Actions event payload (contains issue/comment details).
 const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH!, "utf-8"));
 
@@ -207,7 +213,7 @@ function resolveModelForTier(
   defaultModel: string
 ): string {
   if (tier === "pro" || tier === "pro-extended") return defaultModel;
-  const providerModels = (routerConfig as Record<string, unknown>).provider_models as
+  const providerModels = routerConfig.provider_models as
     Record<string, Record<string, string>> | undefined;
   return providerModels?.[provider]?.[tier] ?? defaultModel;
 }
@@ -249,17 +255,24 @@ function recordDecisionToBank(
 ): void {
   const rbPath = resolve(agenticanaRoot, "memory", "reasoning-bank", "decisions.json");
   try {
+    const defaultRb = {
+      version: "2.0",
+      description: "Agenticana ReasoningBank",
+      last_consolidated: null,
+      total_decisions: 0,
+      decisions: [],
+    };
     const rb = existsSync(rbPath)
       ? JSON.parse(readFileSync(rbPath, "utf-8"))
-      : { version: "2.0", description: "Agenticana ReasoningBank", last_consolidated: null, total_decisions: 0, decisions: [] };
+      : defaultRb;
     const id = `rb-${String((rb.total_decisions ?? 0) + 1).padStart(3, "0")}`;
     rb.decisions.push({
       id,
       timestamp: new Date().toISOString(),
-      task: task.slice(0, 200),
+      task: task.slice(0, MAX_RB_TASK_LENGTH),
       task_type: "auto",
       agent,
-      decision: outcome.slice(0, 500),
+      decision: outcome.slice(0, MAX_RB_OUTCOME_LENGTH),
       outcome: success ? "Task completed successfully" : "Task failed",
       success,
       tokens_used: null,
@@ -298,7 +311,7 @@ function generateADR(
   const filename = `ADR-${timestamp}-${slug || "untitled"}.md`;
 
   const sections = agentResponses
-    .map((r) => `### ${r.agent}\n\n${r.text.slice(0, 2000)}`)
+    .map((r) => `### ${r.agent}\n\n${r.text.slice(0, MAX_ADR_SECTION_LENGTH)}`)
     .join("\n\n---\n\n");
 
   const adr =
@@ -306,7 +319,7 @@ function generateADR(
     `**Date:** ${new Date().toISOString()}\n` +
     `**Status:** Proposed\n` +
     `**Mode:** Simulacrum (multi-agent debate)\n\n` +
-    `## Context\n\n${prompt.slice(0, 1000)}\n\n` +
+    `## Context\n\n${prompt.slice(0, MAX_ADR_PROMPT_LENGTH)}\n\n` +
     `## Agent Perspectives\n\n${sections}\n\n` +
     `## Decision\n\n_Synthesized from ${agentResponses.length} agent perspectives._\n`;
 
@@ -559,6 +572,7 @@ try {
   const piBin = resolve(agenticanaDir, "node_modules", ".bin", "pi");
   const agentResponses: { agent: string; text: string }[] = [];
   let simulacrumContext = "";
+  let lastModelUsed = configuredModel;
 
   // jq filter to extract the final assistant text from JSONL output
   const jqAssistantFilter =
@@ -598,6 +612,7 @@ try {
           configuredProvider,
           configuredModel
         );
+        lastModelUsed = modelToUse;
         console.log(
           `  Router: complexity=${decision.complexity_score}, tier=${decision.tier}, ` +
           `model=${modelToUse}, strategy=${decision.strategy}, ` +
@@ -769,9 +784,9 @@ try {
   recordDecisionToBank(
     prompt,
     dispatchedAgents.join(", "),
-    agentText.slice(0, 500),
+    agentText.slice(0, MAX_RB_OUTCOME_LENGTH),
     true,
-    configuredModel,
+    lastModelUsed,
     agenticanaDir
   );
 
