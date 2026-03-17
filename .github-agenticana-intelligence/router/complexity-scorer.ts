@@ -57,7 +57,7 @@ export function scoreComplexity(
     security:
       /(auth|jwt|security|password|permission|role|oauth|cors)/i,
     devops:
-      /(deploy|ci\/cd|docker|kubernetes|nginx|pipeline|github.actions)/i,
+      /(deploy|ci\/cd|docker|kubernetes|nginx|pipeline|github\.actions)/i,
     testing:
       /(test|spec|jest|vitest|playwright|cypress|coverage|mock)/i,
     game: /(game|phaser|unity|godot|scene|sprite|collision)/i,

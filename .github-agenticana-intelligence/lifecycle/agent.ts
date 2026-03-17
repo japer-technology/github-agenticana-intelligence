@@ -1034,7 +1034,7 @@ try {
   writeFileSync("/tmp/agent-raw.jsonl", "");
   const lastOutputFile = `/tmp/agent-raw-${lastAgent}.jsonl`;
   if (existsSync(lastOutputFile)) {
-    const lastOutput = readFileSync(lastOutputFile);
+    const lastOutput = readFileSync(lastOutputFile, "utf-8");
     writeFileSync("/tmp/agent-raw.jsonl", lastOutput);
   }
 
@@ -1072,7 +1072,7 @@ try {
   }
 
   // Retry push up to 10 times with increasing backoff delays.
-  const pushBackoffs = [1000, 2000, 3000, 5000, 7000, 8000, 10000, 12000, 12000];
+  const pushBackoffs = [1000, 2000, 3000, 5000, 7000, 8000, 10000, 12000, 12000, 12000];
   let pushSucceeded = false;
   for (let i = 1; i <= 10; i++) {
     const push = await run(["git", "push", "origin", `HEAD:${defaultBranch}`]);
