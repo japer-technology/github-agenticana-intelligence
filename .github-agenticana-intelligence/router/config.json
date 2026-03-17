@@ -37,31 +37,45 @@
   "provider_models": {
     "openai": {
       "lite": "gpt-4o-mini",
-      "flash": "gpt-4o"
+      "flash": "gpt-4o",
+      "pro": "gpt-4o",
+      "pro-extended": "gpt-4o"
     },
     "anthropic": {
       "lite": "claude-3-5-haiku-latest",
-      "flash": "claude-3-5-sonnet-latest"
+      "flash": "claude-3-5-sonnet-latest",
+      "pro": "claude-3-5-sonnet-latest",
+      "pro-extended": "claude-3-5-sonnet-latest"
     },
     "google": {
       "lite": "gemini-2.0-flash-lite",
-      "flash": "gemini-2.0-flash"
+      "flash": "gemini-2.0-flash",
+      "pro": "gemini-1.5-pro",
+      "pro-extended": "gemini-2.0-pro"
     },
     "xai": {
       "lite": "grok-3-mini",
-      "flash": "grok-3-mini"
+      "flash": "grok-3-mini",
+      "pro": "grok-3-mini",
+      "pro-extended": "grok-3-mini"
     },
     "openrouter": {
       "lite": "google/gemini-2.0-flash-lite",
-      "flash": "google/gemini-2.0-flash"
+      "flash": "google/gemini-2.0-flash",
+      "pro": "google/gemini-1.5-pro",
+      "pro-extended": "google/gemini-2.0-pro"
     },
     "mistral": {
       "lite": "mistral-small-latest",
-      "flash": "mistral-medium-latest"
+      "flash": "mistral-medium-latest",
+      "pro": "mistral-large-latest",
+      "pro-extended": "mistral-large-latest"
     },
     "groq": {
       "lite": "llama-3.3-70b-versatile",
-      "flash": "llama-3.3-70b-versatile"
+      "flash": "llama-3.3-70b-versatile",
+      "pro": "llama-3.3-70b-versatile",
+      "pro-extended": "llama-3.3-70b-versatile"
     }
   }
 }
